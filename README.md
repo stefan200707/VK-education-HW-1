@@ -192,65 +192,12 @@
 # ДЗ №5
 
 ## C4: уровень 1, контекст
-```mermaid
-flowchart TB
-    elder["👵 Пожилой пользователь<br/>говорит о проблеме, подтверждает действия"]
-    relative["🧑 Родственник<br/>подключает телефон, платит, помогает удалённо"]
-    support["🎧 Поддержка<br/>разбирает жалобы"]
-    sys["<b>Внук на связи</b><br/>ИИ-помощь с телефоном и удалённый доступ"]
-    llm["YandexGPT / GigaChat<br/>понимание проблемы, план действий"]
-    stt["Yandex SpeechKit<br/>голос → текст, текст → голос"]
-    push["FCM / RuStore Push<br/>уведомления"]
-    pay["ЮKassa / RuStore Billing<br/>оплата подписки"]
-    elder --> sys
-    relative --> sys
-    support --> sys
-    sys --> llm
-    sys --> stt
-    sys --> push
-    sys --> pay
-    style sys fill:#1e88e5,color:#fff
-    style llm fill:#9e9e9e,color:#fff
-    style stt fill:#9e9e9e,color:#fff
-    style push fill:#9e9e9e,color:#fff
-    style pay fill:#9e9e9e,color:#fff
-```
+![C4 контекст](c4-context.svg)
+
+Синий — наша система, серые — внешние сервисы, с которыми интегрируемся.
 
 ## C4: уровень 2, контейнеры
-```mermaid
-flowchart LR
-    elder["👵 Мама"] --> agent
-    relative["🧑 Родственник"] --> rapp
-    support["🎧 Поддержка"] --> admin
-
-    subgraph S["Внук на связи"]
-        agent["Приложение-агент<br/>Android, Kotlin<br/>кнопка «Помогите», выполняет действия"]
-        rapp["Приложение родственника<br/>Flutter, Android + iOS"]
-        admin["Панель поддержки<br/>Django Admin"]
-        api["Бэкенд API<br/>Python, Django + DRF"]
-        ai["ИИ-оркестратор<br/>Python, Celery<br/>диагноз, план, проверка запретов"]
-        rtc["Сервер удалённого доступа<br/>LiveKit, WebRTC"]
-        db[("PostgreSQL<br/>семьи, устройства, обращения")]
-        redis[("Redis<br/>очередь задач, статусы")]
-        s3[("S3, Yandex Object Storage<br/>записи голоса")]
-    end
-
-    agent -- "HTTPS / WebSocket" --> api
-    rapp -- HTTPS --> api
-    admin --> db
-    api --> db
-    api --> redis
-    api --> s3
-    redis --> ai
-    ai -- "команды агенту" --> api
-    agent <-- "экран + голос" --> rtc
-    rapp <-- "экран + голос" --> rtc
-
-    ai --> llm["YandexGPT / GigaChat"]
-    ai --> stt["SpeechKit"]
-    api --> push["FCM / RuStore Push"]
-    api --> pay["ЮKassa / RuStore Billing"]
-```
+![C4 контейнеры](c4-containers.svg)
 
 Как идёт обращение: агент отправляет голос и состояние телефона в API → API кладёт задачу в Redis → ИИ-оркестратор распознаёт речь (SpeechKit), получает план от LLM, убирает запрещённые действия и отдаёт команды агенту → агент выполняет их через Accessibility Service. Если ИИ не уверен, API шлёт пуш родственнику, и тот подключается через LiveKit.
 
